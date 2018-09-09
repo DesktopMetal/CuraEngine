@@ -708,10 +708,11 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
         {
             std::string cross_subdisivion_spec_image_file = mesh.getSettingString("cross_infill_density_image");
             std::ifstream cross_fs(cross_subdisivion_spec_image_file.c_str());
+            bool has_top_skin = mesh.getSettingAsCount("top_layers") > 0;
             if (cross_subdisivion_spec_image_file != "" && cross_fs.good())
             {
                 bool use_new_cross_3d_generator = true; // TODO: only use cross3D when a *sequence* of images is specified
-                mesh.cross_fill_provider = new SierpinskiFillProvider(&mesh, mesh.bounding_box, mesh.getSettingInMicrons("infill_line_distance"), mesh.getSettingInMicrons("infill_line_width"), cross_subdisivion_spec_image_file, use_new_cross_3d_generator);
+                mesh.cross_fill_provider = new SierpinskiFillProvider(&mesh, mesh.bounding_box, mesh.getSettingInMicrons("infill_line_distance"), mesh.getSettingInMicrons("infill_line_width"), cross_subdisivion_spec_image_file, use_new_cross_3d_generator, has_top_skin);
             }
             else
             {
@@ -719,7 +720,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
                 {
                     logError("Cannot find density image \'%s\'.", cross_subdisivion_spec_image_file.c_str());
                 }
-                mesh.cross_fill_provider = new SierpinskiFillProvider(&mesh, mesh.bounding_box, mesh.getSettingInMicrons("infill_line_distance"), mesh.getSettingInMicrons("infill_line_width"), mesh.getSettingInPercentage("cross_infill_dithering_density"));
+                mesh.cross_fill_provider = new SierpinskiFillProvider(&mesh, mesh.bounding_box, mesh.getSettingInMicrons("infill_line_distance"), mesh.getSettingInMicrons("infill_line_width"), mesh.getSettingInPercentage("cross_infill_dithering_density"), has_top_skin);
             }
         }
 
