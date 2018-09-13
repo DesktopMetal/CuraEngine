@@ -38,6 +38,8 @@ private:
      */
     static void getFirstLayerOutline(SliceDataStorage& storage, const unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const bool is_skirt, Polygons& first_layer_outline);
 
+    static void generateSupportBrim(SliceDataStorage& storage);
+
     /*!
      * Generate the skirt/brim lines around the model
      * 

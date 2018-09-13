@@ -135,6 +135,13 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
 
     int offset_distance = generatePrimarySkirtBrimLines(start_distance, primary_line_count, primary_extruder_skirt_brim_line_width, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
 
+    // handle support-brim
+    const unsigned int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
+    const ExtruderTrain* support_infill_extruder = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr);
+    if (support_infill_extruder->getSettingBoolean("support_brim_enable"))
+    {
+        generateSupportBrim(storage);
+    }
 
     // generate brim for ooze shield and draft shield
     if (!is_skirt && (has_ooze_shield || has_draft_shield))
@@ -202,6 +209,62 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
                 storage.skirt_brim[extruder].add(first_layer_outline.offset(offset_distance, ClipperLib::jtRound));
                 offset_distance += width;
             }
+        }
+    }
+}
+
+void SkirtBrim::generateSupportBrim(SliceDataStorage& storage)
+{
+    const unsigned int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
+    const ExtruderTrain* support_infill_extruder = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr);
+    const coord_t brim_line_width = support_infill_extruder->getSettingInMicrons("skirt_brim_line_width") * support_infill_extruder->getSettingAsRatio("initial_layer_line_width_factor");
+    unsigned int line_count = support_infill_extruder->getSettingAsCount("support_brim_line_count");
+    const coord_t minimal_length = support_infill_extruder->getSettingInMicrons("skirt_brim_minimal_length");
+    if (!storage.support.generated || line_count <= 0 || storage.support.supportLayers.empty())
+    {
+        return;
+    }
+
+    const coord_t brim_width = brim_line_width * line_count;
+    Polygons& skirt_brim = storage.skirt_brim[support_infill_extruder_nr];
+
+    SupportLayer& support_layer = storage.support.supportLayers[0];
+
+    Polygons support_outline;
+    for (SupportInfillPart& part : support_layer.support_infill_parts)
+    {
+        support_outline.add(part.outline);
+    }
+    Polygons brim_area = support_outline.difference(support_outline.offset(-brim_width));
+    support_layer.excludeAreasFromSupportInfillAreas(brim_area, AABB(brim_area));
+
+    int offset_distance = brim_line_width / 2;
+    for (unsigned int skirt_brim_number = 0; skirt_brim_number < line_count; skirt_brim_number++)
+    {
+        offset_distance -= brim_line_width;
+
+        Polygons brim_line = support_outline.offset(offset_distance, ClipperLib::jtRound);
+
+        //Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller then 100x extrusion "area"
+        for (unsigned int n = 0; n < brim_line.size(); n++)
+        {
+            double area = brim_line[n].area();
+            if (area < 0 && area > -brim_line_width * brim_line_width * 100)
+            {
+                brim_line.remove(n--);
+            }
+        }
+
+        skirt_brim.add(brim_line);
+
+        coord_t length = skirt_brim.polygonLength();
+        if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length) //Make brim or skirt have more lines when total length is too small.
+        {
+            line_count++;
+        }
+        if (brim_line.empty())
+        { // the fist layer of support is fully filled with brim
+            break;
         }
     }
 }
