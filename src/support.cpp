@@ -732,7 +732,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         {
             storage.support.cross_fill_provider = new SierpinskiFillProvider(/* mesh = */ nullptr, aabb, infill_extr.getSettingInMicrons("support_line_distance"), infill_extr.getSettingInMicrons("support_line_width"),
                 cross_subdisivion_spec_image_file, infill_extr.getSettingAsRatio("cross_support_image_density_min"), infill_extr.getSettingAsRatio("cross_support_image_density_max"), infill_extr.getSettingAsRatio("cross_support_image_density_transparent"),
-                use_skin);
+                /*cross_infill_support_top = */ false, use_skin);
         }
         else
         {
@@ -742,7 +742,8 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
             }
             const coord_t line_dist = infill_extr.getSettingInMicrons("support_line_distance");
             const coord_t line_width = infill_extr.getSettingInMicrons("support_line_width");
-            storage.support.cross_fill_provider = new SierpinskiFillProvider(/* mesh = */ nullptr, aabb, line_dist, line_width, static_cast<float>(line_width) / line_dist, use_skin);
+            storage.support.cross_fill_provider = new SierpinskiFillProvider(/* mesh = */ nullptr, aabb, line_dist, line_width, static_cast<float>(line_width) / line_dist,
+                /*cross_infill_support_top = */ false, use_skin);
         }
     }
 }
