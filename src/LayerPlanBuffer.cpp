@@ -73,6 +73,19 @@ void LayerPlanBuffer::flush()
 
 void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer)
 {
+    // when new layer starts with new extruder, handle end position of the prev extruder instead of adding connecting travel move
+    if (newest_layer->extruder_plans.front().extruder_nr != prev_layer->extruder_plans.back().extruder_nr)
+    {
+        const ExtruderTrain& train = Application::getInstance().current_slice->scene.extruders[prev_layer->extruder_plans.back().extruder_nr];
+        if (!train.settings.get<bool>("machine_extruder_end_pos_abs"))
+        {
+            Point end_pos(train.settings.get<coord_t>("machine_extruder_end_pos_x"), train.settings.get<coord_t>("machine_extruder_end_pos_y"));
+            end_pos += prev_layer->getLastPlannedPositionOrStartingPosition();
+            prev_layer->addTravel(end_pos);
+        }
+        return;
+    }
+
     std::optional<std::pair<Point, bool>> new_layer_destination_state = newest_layer->getFirstTravelDestinationState();
 
     if (!new_layer_destination_state)
